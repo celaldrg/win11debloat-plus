@@ -34,7 +34,8 @@ function Remove-SelectedApps {
 
     $edgeIds = @('Microsoft.Edge', 'XPFFTQ037JWMHS')
     $wingetRemovedApps = @()
-    $wingetRemovalFailures = @{}
+    # Ordered, so that the failed apps are named in a stable order in the final summary.
+    $wingetRemovalFailures = [ordered]@{}
     if (-not $script:WingetDeferredRemovals) { $script:WingetDeferredRemovals = @{} }
 
     Foreach ($app in $appsList) {
@@ -63,7 +64,7 @@ function Remove-SelectedApps {
         }
         else {
             if (-not (Remove-AppxApp -app $app -targetUser $targetUser)) {
-                $script:AppRemovalFailures++
+                Add-AppRemovalFailure -app $app
             }
         }
     }
@@ -112,9 +113,31 @@ function Remove-SelectedApps {
         }
     }
 
-    $script:AppRemovalFailures += $wingetRemovalFailures.Count
+    foreach ($app in @($wingetRemovalFailures.Keys)) {
+        Add-AppRemovalFailure -app $app
+    }
 
     return ($script:AppRemovalFailures -eq $failuresBefore)
+}
+
+<#
+    .SYNOPSIS
+    Counts a failed app removal and records the app for the final summary.
+
+    .DESCRIPTION
+    Increments $script:AppRemovalFailures and adds the app identifier to
+    $script:AppRemovalFailedApps, so the summary written by Invoke-AllChanges
+    can name the apps that failed instead of only counting them.
+
+    .PARAMETER app
+    The identifier of the app whose removal failed (e.g. 'XP9CXNGPPJ97XX').
+#>
+function Add-AppRemovalFailure {
+    param([string]$app)
+
+    $script:AppRemovalFailures++
+    if ($null -eq $script:AppRemovalFailedApps) { $script:AppRemovalFailedApps = @() }
+    $script:AppRemovalFailedApps += $app
 }
 
 <#

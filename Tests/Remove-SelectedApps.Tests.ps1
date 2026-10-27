@@ -23,6 +23,7 @@ Describe 'Remove-SelectedApps' {
         $script:WingetInstalled = $true
         $script:WingetDeferredRemovals = @{}
         $script:AppRemovalFailures = 0
+        $script:AppRemovalFailedApps = $null
         $script:AppRemovalVerificationUnavailable = $false
         Mock Get-TargetUserForAppRemoval { 'AllUsers' }
         Mock Get-AppRemovalMethod { 'Appx' }
@@ -168,6 +169,50 @@ Describe 'Remove-SelectedApps' {
         Mock Test-AppInWingetList { $true }
         Remove-SelectedApps -appsList @('Microsoft.Edge', 'XPFFTQ037JWMHS')
         Should -Invoke Request-EdgeForceRemove -Times 1 -Exactly
+    }
+
+    It 'records the ID of each failed Appx and WinGet removal in order' {
+        Mock Get-AppRemovalMethod { param($appId) if ($appId -ceq 'Winget.App') { 'WinGet' } else { 'Appx' } }
+        Mock Remove-AppxApp { $app -cne 'Failed.Appx' }
+        Mock Test-AppInWingetList { $true }
+
+        Remove-SelectedApps -appsList @('Failed.Appx', 'Removed.Appx', 'Winget.App') | Should -BeFalse
+
+        $script:AppRemovalFailures | Should -Be 2
+        ($script:AppRemovalFailedApps -join ',') | Should -BeExactly 'Failed.Appx,Winget.App'
+    }
+
+    It 'records a WinGet app once when scheduling and verification both fail' {
+        $script:Params = @{ User = 'Alice' }
+        Mock Get-AppRemovalMethod { 'WinGet' }
+        Mock Remove-WinGetApp { $false }
+        Mock Test-AppInWingetList { $true }
+
+        Remove-SelectedApps -appsList @('One.App') | Should -BeFalse
+
+        $script:AppRemovalFailures | Should -Be 1
+        ($script:AppRemovalFailedApps -join ',') | Should -BeExactly 'One.App'
+    }
+
+    It 'records every WinGet app whose removal could not be verified' {
+        Mock Get-AppRemovalMethod { 'WinGet' }
+        Mock Get-WingetInstalledApps { $null }
+
+        Remove-SelectedApps -appsList @('One.App', 'Two.App', 'Three.App') | Should -BeFalse
+
+        $script:AppRemovalVerificationUnavailable | Should -BeTrue
+        $script:AppRemovalFailures | Should -Be 3
+        ($script:AppRemovalFailedApps -join ',') | Should -BeExactly 'One.App,Two.App,Three.App'
+    }
+
+    It 'keeps the failed app IDs of earlier removal calls' {
+        Mock Remove-AppxApp { $false }
+
+        Remove-SelectedApps -appsList @('One.App') | Should -BeFalse
+        Remove-SelectedApps -appsList @('Two.App') | Should -BeFalse
+
+        $script:AppRemovalFailures | Should -Be 2
+        ($script:AppRemovalFailedApps -join ',') | Should -BeExactly 'One.App,Two.App'
     }
 }
 
