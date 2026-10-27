@@ -140,6 +140,8 @@ if (-not $isAdmin) {
             $paramValue = $PSBoundParameters[$paramName]
 
             if ($paramValue -is [System.Management.Automation.SwitchParameter]) {
+                # powershell.exe -File cannot pass a value to a switch, so a switch passed as -Name:$false is left out.
+                # The elevated run gets the same result, because Remove-FalseSwitchParameters drops it from $script:Params.
                 if ($paramValue.IsPresent) {
                     $elevatedArgs += "-$paramName"
                 }
@@ -434,6 +436,7 @@ if (-not $script:WingetInstalled -and -not $Silent) {
 
 # Helper functions
 . "$PSScriptRoot/Scripts/Helpers/Add-Parameter.ps1"
+. "$PSScriptRoot/Scripts/Helpers/Remove-FalseSwitchParameters.ps1"
 . "$PSScriptRoot/Scripts/Helpers/Resolve-UserProfilePath.ps1"
 . "$PSScriptRoot/Scripts/Helpers/User-HiveHelpers.ps1"
 . "$PSScriptRoot/Scripts/Helpers/Test-UserProfileExists.ps1"
@@ -479,6 +482,9 @@ Initialize-UiPreferences -Language $Language
 
 $script:Params = $PSBoundParameters
 $script:UndoParams = @{}
+
+# A switch passed as -Name:$false counts as not passed, the same as after the elevated relaunch or Scripts/Get.ps1
+Remove-FalseSwitchParameters $script:Params
 
 # Add default Apps parameter when RemoveApps is requested and Apps was not explicitly provided
 if ((-not $script:Params.ContainsKey("Apps")) -and $script:Params.ContainsKey("RemoveApps")) {
