@@ -208,7 +208,12 @@ $script:LoadAppsDetailsScriptPath = Join-Path (Join-Path $scriptsPath 'FileIO') 
 $script:TestAppInWingetListScriptPath = Join-Path (Join-Path $scriptsPath 'AppRemoval') 'Test-AppInWingetList.ps1'
 $script:ImportLanguageFileScriptPath = Join-Path (Join-Path $scriptsPath 'FileIO') 'Import-LanguageFile.ps1'
 
-$script:ControlParams = 'WhatIf', 'Confirm', 'Verbose', 'Debug', 'LogPath', 'Language', 'Silent', 'Sysprep', 'User', 'SkipExplorerRestart', 'SkipRegistryBackup', 'RunDefaults', 'RunDefaultsLite', 'RunSavedSettings', 'Config', 'CLI', 'AppRemovalTarget'
+# Parameters that change how the script runs rather than select a feature. This includes PowerShell's common
+# parameters (Verbose, Debug, ErrorAction, OutVariable, ...) and WhatIf/Confirm, because any of them that is passed
+# explicitly is also in $PSBoundParameters. The names are copied into a new array; PowerShell's own sets stay unchanged.
+$script:ControlParams = @('LogPath', 'Language', 'Silent', 'Sysprep', 'User', 'SkipExplorerRestart', 'SkipRegistryBackup', 'RunDefaults', 'RunDefaultsLite', 'RunSavedSettings', 'Config', 'CLI', 'AppRemovalTarget') +
+    [System.Management.Automation.PSCmdlet]::CommonParameters +
+    [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
 
 # Script-level variables for GUI elements
 $script:GuiWindow = $null
