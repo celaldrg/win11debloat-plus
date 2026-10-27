@@ -534,6 +534,49 @@ Describe 'Invoke-AllChanges' {
         Should -Invoke Write-Warning -Times 1 -Exactly -ParameterFilter { $Message -eq 'Unable to verify if all apps were uninstalled successfully.' }
     }
 
+    It 'names each failed app once in the app removal summary' {
+        $script:Params = @{ CustomApply = $true }
+        $script:UndoParams = @{}
+        Mock Invoke-ApplyFeatures {
+            $script:AppRemovalFailures = 3
+            $script:AppRemovalFailedApps = @('XP9CXNGPPJ97XX', 'Microsoft.Copilot', 'XP9CXNGPPJ97XX')
+        }
+
+        Invoke-AllChanges
+
+        Should -Invoke Write-Warning -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq '3 app removal(s) failed: XP9CXNGPPJ97XX, Microsoft.Copilot. See output above for details.'
+        }
+    }
+
+    It 'keeps the app removal summary unchanged when no failed app was recorded' {
+        $script:Params = @{ CustomApply = $true }
+        $script:UndoParams = @{}
+        Mock Invoke-ApplyFeatures { $script:AppRemovalFailures = 2 }
+
+        Invoke-AllChanges
+
+        Should -Invoke Write-Warning -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq '2 app removal(s) failed. See output above for details.'
+        }
+    }
+
+    It 'does not name failed apps from a previous run' {
+        $script:Params = @{ CustomApply = $true }
+        $script:UndoParams = @{}
+        $script:AppRemovalFailedApps = @('Stale.App')
+        Mock Invoke-ApplyFeatures {
+            $script:AppRemovalFailures = 1
+            $script:AppRemovalFailedApps += 'One.App'
+        }
+
+        Invoke-AllChanges
+
+        Should -Invoke Write-Warning -Times 1 -Exactly -ParameterFilter {
+            $Message -ceq '1 app removal(s) failed: One.App. See output above for details.'
+        }
+    }
+
 }
 
 Describe 'Invoke-AllChanges build gate' {
