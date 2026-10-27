@@ -1,3 +1,19 @@
+# Win11Debloat Plus
+
+**Win11Debloat with additional bug fixes.** An unofficial, independent edition of [Raphire/Win11Debloat](https://github.com/Raphire/Win11Debloat). **[Türkçe açıklama ↓](#türkçe)**
+
+> Based on [Raphire/Win11Debloat](https://github.com/Raphire/Win11Debloat), MIT License (see [LICENSE](LICENSE)). This is an independent community edition. It is not affiliated with or endorsed by Raphire or the Win11Debloat project. The full upstream history is kept; the changes made in this edition are in its [pull requests](https://github.com/celaldrg/win11debloat-plus/pulls?q=is%3Apr) and commit history.
+>
+> This edition has no releases yet. The usage instructions below come from upstream and download the official Win11Debloat release, not this edition.
+
+### Türkçe
+
+**Win11Debloat Plus**, [Raphire/Win11Debloat](https://github.com/Raphire/Win11Debloat) projesinin **resmî olmayan**, bağımsız bir sürümüdür. Ana projeye ek hata düzeltmeleri içerir. Bu sürümdeki değişiklikler [PR'larda](https://github.com/celaldrg/win11debloat-plus/pulls?q=is%3Apr) ve commit geçmişinde listelenir. Lisans: MIT ([LICENSE](LICENSE)). Raphire ya da Win11Debloat projesiyle bağlantılı değildir, onlar tarafından onaylanmamıştır.
+
+Bu sürümün henüz bir yayını (release) yok. Aşağıdaki kullanım talimatları ana projeye aittir ve resmî Win11Debloat sürümünü indirir.
+
+---
+
 # Win11Debloat
 
 [![GitHub Release](https://img.shields.io/github/v/release/Raphire/Win11Debloat?style=for-the-badge&label=Latest%20release)](https://github.com/Raphire/Win11Debloat/releases/latest)
