@@ -122,3 +122,38 @@ Describe 'FeatureId parameter contracts' {
         $unaccounted | Should -HaveCount 0 -Because ($unaccounted -join ', ')
     }
 }
+
+Describe 'Control parameter contracts' {
+    BeforeAll {
+        # Evaluate the $script:ControlParams assignment of Win11Debloat.ps1 without running the script
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($script:Win11DebloatPath, [ref]$tokens, [ref]$parseErrors)
+        $parseErrors | Should -BeNullOrEmpty
+        $assignment = $ast.Find({
+            param($node)
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$script:ControlParams'
+        }, $true)
+        $assignment | Should -Not -BeNullOrEmpty
+        $script:ControlParameterNames = @(& ([scriptblock]::Create($assignment.Right.Extent.Text)))
+    }
+
+    It 'treats every PowerShell common parameter as a control parameter' {
+        # PowerShell also puts an explicitly passed common parameter, such as -ErrorAction, in $PSBoundParameters
+        $expected = @('Verbose', 'Debug', 'ErrorAction', 'WarningAction', 'InformationAction', 'ErrorVariable', 'WarningVariable',
+            'InformationVariable', 'OutVariable', 'OutBuffer', 'PipelineVariable', 'WhatIf', 'Confirm') +
+            [System.Management.Automation.PSCmdlet]::CommonParameters +
+            [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
+        $missing = @($expected | Where-Object { $script:ControlParameterNames -cnotcontains $_ } | Select-Object -Unique)
+
+        $missing | Should -HaveCount 0 -Because ($missing -join ', ')
+    }
+
+    It 'lists every control parameter once' {
+        # Win11Debloat.ps1 counts the passed control parameters to tell whether any change was selected
+        $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $duplicates = @($script:ControlParameterNames | Where-Object { -not $seen.Add($_) })
+
+        $duplicates | Should -HaveCount 0 -Because ($duplicates -join ', ')
+    }
+}
