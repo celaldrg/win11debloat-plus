@@ -349,6 +349,7 @@ function Invoke-AllChanges {
     }
 
     $script:AppRemovalFailures = 0
+    $script:AppRemovalFailedApps = @()
     $script:FeatureFailures = 0
     $script:AppRemovalVerificationUnavailable = $false
     $script:WingetDeferredRemovals = @{}
@@ -476,8 +477,15 @@ function Invoke-AllChanges {
     # Final: Report failures
     # ================================================================
     if ($script:AppRemovalFailures -gt 0) {
+        # Name each failed app once, in the order the failures were recorded.
+        $failedApps = New-Object System.Collections.Generic.List[string]
+        foreach ($failedApp in @($script:AppRemovalFailedApps)) {
+            if ($failedApp -and -not $failedApps.Contains($failedApp)) { $failedApps.Add($failedApp) }
+        }
+        $failedAppsText = if ($failedApps.Count -gt 0) { ": $($failedApps -join ', ')" } else { '' }
+
         Write-Host ""
-        Write-Warning "$($script:AppRemovalFailures) app removal(s) failed. See output above for details."
+        Write-Warning "$($script:AppRemovalFailures) app removal(s) failed$failedAppsText. See output above for details."
     }
 
     if ($script:FeatureFailures -gt 0) {
