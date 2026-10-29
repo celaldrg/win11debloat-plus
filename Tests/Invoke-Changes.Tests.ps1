@@ -493,6 +493,46 @@ Describe 'Invoke-AllChanges' {
         }
     }
 
+    It 'does not apply explicitly passed common parameters as features' {
+        # Use $script:ControlParams exactly as Win11Debloat.ps1 defines it
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot '..\Win11Debloat.ps1'), [ref]$tokens, [ref]$parseErrors)
+        $parseErrors | Should -BeNullOrEmpty
+        $assignment = $ast.Find({
+            param($node)
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$script:ControlParams'
+        }, $true)
+        $script:ControlParams = @(& ([scriptblock]::Create($assignment.Right.Extent.Text)))
+
+        # Win11Debloat.ps1 stores its $PSBoundParameters as $script:Params, so let PowerShell bind the parameters
+        function Get-BoundParameterSet {
+            [CmdletBinding()]
+            param([switch]$CustomApply)
+            $PSBoundParameters
+        }
+        $commonParameters = @{
+            ErrorAction         = 'SilentlyContinue'
+            WarningAction       = 'SilentlyContinue'
+            InformationAction   = 'SilentlyContinue'
+            ErrorVariable       = 'boundErrors'
+            WarningVariable     = 'boundWarnings'
+            InformationVariable = 'boundInformation'
+            OutVariable         = 'boundOutput'
+            OutBuffer           = 1
+            PipelineVariable    = 'boundItem'
+        }
+        $script:Params = Get-BoundParameterSet -CustomApply @commonParameters
+        $script:Params.Count | Should -Be 10
+        $script:UndoParams = @{}
+
+        Invoke-AllChanges
+
+        Should -Invoke Invoke-ApplyFeatures -Times 1 -Exactly -ParameterFilter {
+            @($FeatureIds).Count -eq 1 -and $FeatureIds[0] -ceq 'CustomApply' -and $TotalSteps -eq 1
+        }
+    }
+
     It 'sequences an optional restore point before feature application' {
         $script:Params = @{ CreateRestorePoint = $true; CustomApply = $true }
         $script:UndoParams = @{}
